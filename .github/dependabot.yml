@@ -1,0 +1,13 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    allow:
+      - dependency-name: "d3"
+    commit-message:
+      prefix: "chore"
+    labels:
+      - "dependencies"
+      - "d3"

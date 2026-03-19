@@ -1,0 +1,76 @@
+name: D3 Update
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "package.json"
+      - "package-lock.json"
+
+jobs:
+  update-static-resource:
+    runs-on: ubuntu-latest
+    outputs:
+      d3-updated: ${{ steps.check.outputs.updated }}
+      d3-version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm ci
+
+      - name: Check if D3 version changed
+        id: check
+        run: |
+          D3_VERSION=$(node -e "console.log(require('./node_modules/d3/package.json').version)")
+          echo "version=$D3_VERSION" >> "$GITHUB_OUTPUT"
+
+          if grep -q "D3.js v$D3_VERSION" main/default/staticresources/d3.resource-meta.xml 2>/dev/null; then
+            echo "D3 static resource already at v$D3_VERSION — skipping."
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "D3 updated to v$D3_VERSION — updating static resource."
+            echo "updated=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update D3 static resource
+        if: steps.check.outputs.updated == 'true'
+        run: npx tsx scripts/update-d3.ts
+
+      - name: Commit and push changes
+        if: steps.check.outputs.updated == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add main/default/staticresources/ sfdx-project.json
+          git commit -m "chore: update d3 static resource to v${{ steps.check.outputs.version }}"
+          git push
+
+  create-package-version:
+    needs: update-static-resource
+    if: needs.update-static-resource.outputs.d3-updated == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Install Salesforce CLI
+        run: npm install -g @salesforce/cli
+
+      - name: Authenticate to Dev Hub
+        run: |
+          echo "${{ secrets.SFDX_AUTH_URL }}" > auth.txt
+          sf org login sfdx-url --sfdx-url-file auth.txt --set-default-dev-hub
+          rm auth.txt
+
+      - name: Create package version
+        run: |
+          sf package version create \
+            --package lwc-d3 \
+            --installation-key-bypass \
+            --wait 20 \
+            --code-coverage

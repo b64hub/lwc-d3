@@ -1,8 +1,11 @@
 {
   "packageDirectories": [
     {
-      "path": ".",
-      "default": true
+      "path": "src",
+      "default": true,
+      "package": "lwc-d3",
+      "versionName": "D3 v7.9.0",
+      "versionNumber": "7.9.0.NEXT"
     }
   ],
   "name": "lwc-d3",
