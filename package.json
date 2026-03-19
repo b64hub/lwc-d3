@@ -1,8 +1,8 @@
 {
-  "name": "salesforce-app",
+  "name": "lwc-d3",
   "private": true,
   "version": "1.0.0",
-  "description": "Salesforce App",
+  "description": "D3.js in LWC. Kept in sync with latest version of d3.",
   "scripts": {
     "lint": "eslint **/{aura,lwc}/**/*.js",
     "test": "npm run test:unit",
